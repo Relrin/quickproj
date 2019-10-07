@@ -1,29 +1,41 @@
-use crate::cli::CliOptions;
+use crate::cli::Command;
 use crate::error::Error;
+use crate::plugins::{Plugin, is_correct_plugins_list};
 
 pub struct Client;
 
 impl Client {
     pub fn new() -> Self {
-        Client { }
+        Client {}
     }
 
-    pub fn run(&self, cli: &CliOptions) {
-        match self.check_input(cli) {
-            Ok(_) => self.prepare_project(cli),
+    pub fn run(&self, command: &Command) {
+        let result = match command {
+            Command::Init {
+                plugins,
+                options,
+            } => self.init_project(&plugins, &options),
+            Command::Install {
+            } => self.install_template(),
+            Command::List {
+            } => self.show_template_list(),
+        };
+
+        match result {
+            Ok(_) => {},
             Err(err) => println!("{}", err),
         }
     }
 
-    fn check_input(&self, cli: &CliOptions) -> Result<(), Error> {
-        if cli.plugins.is_empty() {
-            let message = String::from("Please, specify at least one used plugin and try again.");
-            return Err(Error::Other(message))
-        }
-
+    fn init_project(&self, plugins: &Vec<String>, options: &Vec<String>) -> Result<(), Error> {
         Ok(())
     }
 
-    fn prepare_project(&self, _cli: &CliOptions) {
+    fn install_template(&self) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn show_template_list(&self) -> Result<(), Error> {
+        Ok(())
     }
 }

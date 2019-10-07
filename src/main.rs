@@ -1,14 +1,15 @@
 mod cli;
 mod client;
 mod error;
+mod plugins;
 
 use structopt::StructOpt;
 
-use crate::cli::CliOptions;
+use crate::cli::Command;
 use crate::client::Client;
 
 fn main() {
-    let cli = CliOptions::from_args();
+    let command = Command::from_args();
     let client = Client::new();
-    client.run(&cli);
+    client.run(&command);
 }
