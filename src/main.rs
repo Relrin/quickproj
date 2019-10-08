@@ -1,6 +1,7 @@
 mod cli;
 mod client;
 mod error;
+mod filesystem;
 mod plugins;
 
 use structopt::StructOpt;

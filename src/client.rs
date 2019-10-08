@@ -1,5 +1,6 @@
-use crate::cli::Command;
+use crate::cli::{InstallerTypeEnum, Command};
 use crate::error::Error;
+use crate::filesystem::{create_directory, get_template_directory};
 use crate::plugins::{Plugin, is_correct_plugins_list};
 
 pub struct Client;
@@ -14,9 +15,11 @@ impl Client {
             Command::Init {
                 plugins,
                 options,
-            } => self.init_project(&plugins, &options),
+            } => self.init_project(plugins, options),
             Command::Install {
-            } => self.install_template(),
+                installer_type,
+                path,
+            } => self.install_template(installer_type, path),
             Command::List {
             } => self.show_template_list(),
         };
@@ -31,7 +34,9 @@ impl Client {
         Ok(())
     }
 
-    fn install_template(&self) -> Result<(), Error> {
+    fn install_template(&self, installer: &InstallerTypeEnum, path: &String) -> Result<(), Error> {
+        let template_directory = get_template_directory()?;
+        create_directory(&template_directory);
         Ok(())
     }
 
