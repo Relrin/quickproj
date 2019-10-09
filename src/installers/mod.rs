@@ -1,3 +1,5 @@
-pub mod base;
+pub mod git;
+pub mod traits;
 
-pub use self::base::TemplateInstaller;
+pub use self::git::GitInstaller;
+pub use self::traits::TemplateInstaller;

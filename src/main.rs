@@ -1,8 +1,10 @@
 mod cli;
 mod client;
 mod error;
+mod installers;
 mod filesystem;
 mod plugins;
+mod terminal;
 
 use structopt::StructOpt;
 
@@ -11,6 +13,8 @@ use crate::client::Client;
 
 fn main() {
     let command = Command::from_args();
-    let client = Client::new();
-    client.run(&command);
+    match Client::new() {
+        Ok(client) => client.run(&command),
+        Err(err) => println!("{}", err),
+    }
 }

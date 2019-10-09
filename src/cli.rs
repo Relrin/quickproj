@@ -35,7 +35,7 @@ pub enum Command {
     Install {
         #[structopt(
             raw(possible_values = "&InstallerTypeEnum::variants()"),
-            name = "with",
+            name = "installer",
             help = "Used plugin for installing templates.",
             case_insensitive = true
         )]
@@ -45,6 +45,11 @@ pub enum Command {
             help = "Path to the repository with the template."
         )]
         path: String,
+        #[structopt(
+            long = "--template-name",
+            help = "Custom name for the installed template."
+        )]
+        template_name: Option<String>
     },
     /// Show list of available templates
     #[structopt(name = "list")]

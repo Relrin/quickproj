@@ -1,13 +1,27 @@
+use std::collections::HashMap;
+use std::path::Path;
+
 use crate::cli::{InstallerTypeEnum, Command};
 use crate::error::Error;
-use crate::filesystem::{create_directory, get_template_directory};
+use crate::filesystem::{create_directory, get_templates_directory, get_templates_map, is_repository_exist, delete_repository};
 use crate::plugins::{Plugin, is_correct_plugins_list};
+use crate::installers::git::GitInstaller;
+use crate::installers::traits::TemplateInstaller;
+use crate::terminal::ask_for_replacing_template;
 
-pub struct Client;
+pub struct Client {
+    templates: HashMap<String, String>
+}
 
 impl Client {
-    pub fn new() -> Self {
-        Client {}
+    pub fn new() -> Result<Self, Error> {
+        let templates_directory = get_templates_directory()?;
+        if !templates_directory.exists() {
+            create_directory(&templates_directory);
+        }
+
+        let templates_map = get_templates_map()?;
+        Ok(Client { templates: templates_map })
     }
 
     pub fn run(&self, command: &Command) {
@@ -19,7 +33,8 @@ impl Client {
             Command::Install {
                 installer_type,
                 path,
-            } => self.install_template(installer_type, path),
+                template_name
+            } => self.install_template(installer_type, path, template_name),
             Command::List {
             } => self.show_template_list(),
         };
@@ -34,10 +49,24 @@ impl Client {
         Ok(())
     }
 
-    fn install_template(&self, installer: &InstallerTypeEnum, path: &String) -> Result<(), Error> {
-        let template_directory = get_template_directory()?;
-        create_directory(&template_directory);
-        Ok(())
+    fn install_template(
+        &self,
+        installer: &InstallerTypeEnum,
+        path: &String,
+        template_name: &Option<String>
+    ) -> Result<(), Error> {
+        let worker = match installer {
+            InstallerTypeEnum::Git => Box::new(GitInstaller::new()),
+            InstallerTypeEnum::Local => Box::new(GitInstaller::new()),
+        };
+
+        let repository_name = template_name.clone().unwrap_or(worker.get_template_name(path)?);
+        if is_repository_exist(&repository_name)? {
+            ask_for_replacing_template()?;
+            delete_repository(&repository_name)?;
+        }
+
+        worker.install(path, &repository_name)
     }
 
     fn show_template_list(&self) -> Result<(), Error> {
