@@ -26,7 +26,7 @@ pub enum Command {
         #[structopt(
             last = true,
             name = "options",
-            help = "Additional options for plugins",
+            help = "Additional options for plugins"
         )]
         options: Vec<String>,
     },
@@ -49,10 +49,9 @@ pub enum Command {
             long = "--template-name",
             help = "Custom name for the installed template."
         )]
-        template_name: Option<String>
+        template_name: Option<String>,
     },
     /// Show list of available templates
     #[structopt(name = "list")]
-    List {
-    }
+    List {},
 }

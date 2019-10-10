@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::time::Instant;
 
 use console::Emoji;
-use git2::{Config, FetchOptions, Progress, RemoteCallbacks};
 use git2::build::RepoBuilder;
+use git2::{Config, FetchOptions, Progress, RemoteCallbacks};
 use git2_credentials::CredentialHandler;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
@@ -45,8 +45,7 @@ impl GitInstaller {
             pb.set_position(downloaded_objects as u64);
             pb.set_message(&format!(
                 "[{}/{} objects] Cloning...",
-                downloaded_objects,
-                total_objects
+                downloaded_objects, total_objects
             ));
         } else {
             pb.set_style(ProgressStyle::default_bar().template("{wide_msg}"));
@@ -108,7 +107,11 @@ impl TemplateInstaller for GitInstaller {
             .fetch_options(fo)
             .clone(url, destination.as_path())?;
 
-        println!("{} Done in {}", CLONING_HAS_BEEN_COMPLETED_EMOJI, HumanDuration(started.elapsed()));
+        println!(
+            "{} Done in {}",
+            CLONING_HAS_BEEN_COMPLETED_EMOJI,
+            HumanDuration(started.elapsed())
+        );
         Ok(())
     }
 }

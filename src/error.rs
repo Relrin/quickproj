@@ -1,6 +1,6 @@
-use std::io::Error as StdIoError;
 use git2::Error as Git2Error;
 use quick_error::quick_error;
+use std::io::Error as StdIoError;
 
 quick_error! {
     #[derive(Debug)]

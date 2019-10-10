@@ -1,8 +1,8 @@
 mod cli;
 mod client;
 mod error;
-mod installers;
 mod filesystem;
+mod installers;
 mod plugins;
 mod terminal;
 

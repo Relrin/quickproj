@@ -51,7 +51,8 @@ pub fn get_templates_map() -> Result<HashMap<String, String>, Error> {
         .filter_map(|entry| entry.ok())
         .filter(|entry| is_template_directory(&directory, entry))
         .for_each(|entry| {
-            let path = entry.path()
+            let path = entry
+                .path()
                 .to_path_buf()
                 .into_os_string()
                 .into_string()
@@ -69,7 +70,7 @@ pub fn is_template_directory(directory: &PathBuf, entry: &DirEntry) -> bool {
         true => {
             let config_path = entry_path.join("config.toml");
             config_path.exists()
-        },
+        }
         false => false,
     }
 }
