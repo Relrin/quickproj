@@ -29,7 +29,10 @@ impl Client {
 
     pub fn run(&self, command: &Command) {
         let result = match command {
-            Command::Init { plugins, options } => self.init_project(plugins, options),
+            Command::Init {
+                plugins,
+                options
+            } => self.init_project(plugins, options),
             Command::Install {
                 installer_type,
                 path,
@@ -71,6 +74,13 @@ impl Client {
     }
 
     fn show_template_list(&self) -> Result<(), Error> {
+        let templates = self.templates
+            .keys()
+            .map(|key| &**key)
+            .collect::<Vec<_>>()
+            .join("  ");
+
+        println!("Available templates:\n  {}", templates);
         Ok(())
     }
 }

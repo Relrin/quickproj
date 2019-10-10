@@ -36,6 +36,7 @@ pub fn create_directory(path: &PathBuf) -> Result<(), Error> {
 
 pub fn basename<'a>(path: &'a str, sep: char) -> String {
     let pieces = path.rsplit(sep);
+    println!("{:?}", pieces);
     let result: Cow<'a, str> = match pieces.clone().next() {
         Some(p) => p.into(),
         None => path.into(),
@@ -51,14 +52,19 @@ pub fn get_templates_map() -> Result<HashMap<String, String>, Error> {
         .filter_map(|entry| entry.ok())
         .filter(|entry| is_template_directory(&directory, entry))
         .for_each(|entry| {
+            let template_name = entry
+                .clone()
+                .into_path()
+                .file_name().unwrap()
+                .to_str().unwrap()
+                .to_string();
             let path = entry
-                .path()
-                .to_path_buf()
+                .clone()
+                .into_path()
                 .into_os_string()
                 .into_string()
                 .unwrap();
-            let template_name = basename(&path, '/');
-            templates.insert(template_name, String::from(path));
+            templates.insert(template_name, path);
         });
 
     Ok(templates)
