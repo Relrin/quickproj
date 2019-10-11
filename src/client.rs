@@ -5,7 +5,7 @@ use crate::cli::{Command, InstallerTypeEnum};
 use crate::error::Error;
 use crate::filesystem::{
     create_directory, delete_repository, get_templates_directory, get_templates_map,
-    is_repository_exist,
+    is_template_exist,
 };
 use crate::installers::git::GitInstaller;
 use crate::installers::traits::TemplateInstaller;
@@ -62,15 +62,15 @@ impl Client {
             InstallerTypeEnum::Local => Box::new(GitInstaller::new()),
         };
 
-        let repository_name = template_name
+        let used_template_name = template_name
             .clone()
             .unwrap_or(worker.get_template_name(path)?);
-        if is_repository_exist(&repository_name)? {
+        if is_template_exist(&used_template_name)? {
             ask_for_replacing_template()?;
-            delete_repository(&repository_name)?;
+            delete_repository(&used_template_name)?;
         }
 
-        worker.install(path, &repository_name)
+        worker.install(path, &used_template_name)
     }
 
     fn show_template_list(&self) -> Result<(), Error> {

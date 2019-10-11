@@ -36,7 +36,6 @@ pub fn create_directory(path: &PathBuf) -> Result<(), Error> {
 
 pub fn basename<'a>(path: &'a str, sep: char) -> String {
     let pieces = path.rsplit(sep);
-    println!("{:?}", pieces);
     let result: Cow<'a, str> = match pieces.clone().next() {
         Some(p) => p.into(),
         None => path.into(),
@@ -81,10 +80,10 @@ pub fn is_template_directory(directory: &PathBuf, entry: &DirEntry) -> bool {
     }
 }
 
-pub fn is_repository_exist(repository_name: &String) -> Result<bool, Error> {
+pub fn is_template_exist(template_name: &String) -> Result<bool, Error> {
     let templates_directory = get_templates_directory()?;
-    let checked_repository_path = templates_directory.join(repository_name);
-    Ok(checked_repository_path.is_dir() && checked_repository_path.exists())
+    let checked_template_path = templates_directory.join(template_name);
+    Ok(checked_template_path.is_dir() && checked_template_path.exists())
 }
 
 pub fn delete_repository(repository_name: &String) -> Result<(), Error> {

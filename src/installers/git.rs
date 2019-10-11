@@ -78,9 +78,9 @@ impl TemplateInstaller for GitInstaller {
         Ok(basename(&repository_name.as_str(), '/'))
     }
 
-    fn install(&self, url: &String, repository_name: &String) -> Result<(), Error> {
+    fn install(&self, url: &String, template_name: &String) -> Result<(), Error> {
         let templates_folder = get_templates_directory()?;
-        let destination = templates_folder.join(repository_name);
+        let destination = templates_folder.join(template_name);
         let started = Instant::now();
         let state = RefCell::new(State { progress: None });
         let download_pb = self.get_download_progress_bar();
