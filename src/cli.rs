@@ -9,6 +9,14 @@ arg_enum! {
     }
 }
 
+arg_enum! {
+    #[derive(Debug)]
+    pub enum EntityTypeEnum {
+        Repository,
+        Template,
+    }
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "quickproj")]
 pub enum Command {
@@ -51,7 +59,28 @@ pub enum Command {
         )]
         template_name: Option<String>,
     },
-    /// Show list of available templates
+    /// Show list of the available repositories and templates
     #[structopt(name = "list")]
-    List {},
+    List {
+        #[structopt(
+            raw(possible_values = "&EntityTypeEnum::variants()"),
+            name = "entity",
+            help = "The name of the deleted type.",
+            case_insensitive = true
+        )]
+        entity: EntityTypeEnum,
+    },
+    /// Delete one of the installed repositories or templates
+    #[structopt(name = "delete")]
+    Delete {
+        #[structopt(
+            raw(possible_values = "&EntityTypeEnum::variants()"),
+            name = "entity",
+            help = "The name of the deleted type.",
+            case_insensitive = true
+        )]
+        entity: EntityTypeEnum,
+        #[structopt(help = "Name of the installed repository or the template.")]
+        name: String,
+    },
 }

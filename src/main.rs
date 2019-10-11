@@ -1,5 +1,6 @@
 mod cli;
 mod client;
+mod constants;
 mod error;
 mod filesystem;
 mod installers;

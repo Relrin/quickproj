@@ -1,18 +1,15 @@
 use std::cell::RefCell;
 use std::time::Instant;
 
-use console::Emoji;
 use git2::build::RepoBuilder;
 use git2::{Config, FetchOptions, Progress, RemoteCallbacks};
 use git2_credentials::CredentialHandler;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
+use crate::constants::{CLONING_REPOSITORY_EMOJI, OPERATION_HAS_BEEN_COMPLETED_EMOJI};
 use crate::error::Error;
 use crate::filesystem::{basename, get_templates_directory};
 use crate::installers::traits::TemplateInstaller;
-
-static CLONING_REPOSITORY_EMOJI: Emoji<'_, '_> = Emoji("📦", "");
-static CLONING_HAS_BEEN_COMPLETED_EMOJI: Emoji<'_, '_> = Emoji("✨", ":)");
 
 struct State {
     progress: Option<Progress<'static>>,
@@ -109,7 +106,7 @@ impl TemplateInstaller for GitInstaller {
 
         println!(
             "{} Done in {}",
-            CLONING_HAS_BEEN_COMPLETED_EMOJI,
+            OPERATION_HAS_BEEN_COMPLETED_EMOJI,
             HumanDuration(started.elapsed())
         );
         Ok(())
