@@ -3,6 +3,7 @@ mod client;
 mod constants;
 mod error;
 mod filesystem;
+mod managers;
 mod installers;
 mod plugins;
 mod terminal;

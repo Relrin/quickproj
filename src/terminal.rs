@@ -1,5 +1,3 @@
-use std::io::{stdin, stdout, Write};
-
 use read_input::prelude::input;
 
 use crate::error::Error;

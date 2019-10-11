@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, remove_dir_all};
+use std::fs::create_dir_all;
 use std::path::PathBuf;
 
 use dirs::home_dir;
