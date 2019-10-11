@@ -74,13 +74,19 @@ impl Client {
     }
 
     fn show_template_list(&self) -> Result<(), Error> {
-        let templates = self.templates
-            .keys()
-            .map(|key| &**key)
-            .collect::<Vec<_>>()
-            .join("  ");
+        match self.templates.is_empty() {
+            true => println!("The templates folder is empty. \
+                              Please, install templates first."),
+            false => {
+                let templates = self.templates
+                    .keys()
+                    .map(|key| &**key)
+                    .collect::<Vec<_>>()
+                    .join("  ");
 
-        println!("Available templates:\n  {}", templates);
+                println!("Available templates:\n  {}", templates);
+            }
+        };
         Ok(())
     }
 }
