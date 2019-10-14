@@ -97,14 +97,12 @@ pub fn get_templates_map() -> Result<HashMap<String, String>, Error> {
     Ok(templates)
 }
 
-
 pub fn is_hidden_file(entry: &DirEntry) -> bool {
     entry.file_name()
          .to_str()
          .map(|s| s.starts_with("."))
          .unwrap_or(false)
 }
-
 
 pub fn is_repository_directory(directory: &PathBuf, entry: &DirEntry) -> bool {
     let entry_path = entry.path();

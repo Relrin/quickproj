@@ -5,6 +5,7 @@ authors = ["Valeryi Savich <relrin78@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+bytesize = "1.0"
 clap = "2.31"
 console = "0.9"
 dirs = "2.0"
