@@ -6,7 +6,7 @@ use crate::filesystem::{
     create_directory, delete_repository, get_templates_directory,
     get_repositories_map, get_templates_map, is_template_exist
 };
-use crate::installers::{GitInstaller, LocalInstaller, TemplateInstaller};
+use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
 use crate::plugins::{is_correct_plugins_list, Plugin};
 use crate::terminal::ask_for_replacing_template;
@@ -89,19 +89,17 @@ impl Client {
         manager.delete_entity(name)
     }
 
-    fn get_installer_from_enum(&self, value: &InstallerTypeEnum) -> Box<dyn TemplateInstaller> {
-        let installer = match value {
-            InstallerTypeEnum::Git => GitInstaller::new(),
-            InstallerTypeEnum::Local => LocalInstaller::new(),
-        };
-        Box::new(installer)
+    fn get_installer_from_enum(&self, value: &InstallerTypeEnum) -> Box<dyn Installer> {
+        match value {
+            InstallerTypeEnum::Git => Box::new(GitInstaller::new()),
+            InstallerTypeEnum::Local => Box::new(LocalInstaller::new()),
+        }
     }
 
     fn get_manager_from_enum(&self, value: &EntityTypeEnum) -> Box<dyn Manager> {
-        let manager = match value {
-            EntityTypeEnum::Repository => RepositoryManager::new(&self.repositories),
-            EntityTypeEnum::Template => TemplateManager::new(&self.templates),
-        };
-        Box::new(manager)
+        match value {
+            EntityTypeEnum::Repository => Box::new(RepositoryManager::new(&self.repositories)),
+            EntityTypeEnum::Template => Box::new(TemplateManager::new(&self.templates)),
+        }
     }
 }

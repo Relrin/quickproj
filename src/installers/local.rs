@@ -6,7 +6,7 @@ use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 use crate::constants::OPERATION_HAS_BEEN_COMPLETED_EMOJI;
 use crate::error::Error;
 use crate::filesystem::{basename, get_templates_directory};
-use crate::installers::traits::TemplateInstaller;
+use crate::installers::traits::Installer;
 
 pub struct LocalInstaller;
 
@@ -26,7 +26,7 @@ impl LocalInstaller {
     }
 }
 
-impl TemplateInstaller for LocalInstaller {
+impl Installer for LocalInstaller {
     fn new() -> Self where Self: Sized {
         LocalInstaller {}
     }

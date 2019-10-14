@@ -9,7 +9,7 @@ use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 use crate::constants::{CLONING_REPOSITORY_EMOJI, OPERATION_HAS_BEEN_COMPLETED_EMOJI};
 use crate::error::Error;
 use crate::filesystem::{basename, get_templates_directory};
-use crate::installers::traits::TemplateInstaller;
+use crate::installers::traits::Installer;
 
 struct State {
     progress: Option<Progress<'static>>,
@@ -55,7 +55,7 @@ impl GitInstaller {
     }
 }
 
-impl TemplateInstaller for GitInstaller {
+impl Installer for GitInstaller {
     fn new() -> Self {
         GitInstaller {}
     }
