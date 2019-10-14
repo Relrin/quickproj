@@ -27,16 +27,15 @@ pub enum Command {
     )]
     Init {
         #[structopt(
-            name = "plugins",
-            help = "Used plugins for a project generation"
+            name = "target",
+            help = "Target directory to initialize.",
         )]
-        plugins: Vec<String>,
+        target: String,
         #[structopt(
-            last = true,
-            name = "options",
-            help = "Additional options for plugins"
+            name = "templates",
+            help = "Used templates for a project generation."
         )]
-        options: Vec<String>,
+        templates: Vec<String>
     },
     /// Install new template into the default directory
     #[structopt(name = "install")]

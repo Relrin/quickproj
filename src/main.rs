@@ -5,7 +5,7 @@ mod error;
 mod filesystem;
 mod managers;
 mod installers;
-mod plugins;
+mod templates;
 mod terminal;
 
 use structopt::StructOpt;

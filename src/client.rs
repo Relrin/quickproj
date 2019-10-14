@@ -8,7 +8,7 @@ use crate::filesystem::{
 };
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
-use crate::plugins::{is_correct_plugins_list, Plugin};
+use crate::templates::{Handler, is_correct_template_list};
 use crate::terminal::ask_for_replacing_template;
 
 pub struct Client {
@@ -34,9 +34,9 @@ impl Client {
     pub fn run(&self, command: &Command) {
         let result = match command {
             Command::Init {
-                plugins,
-                options
-            } => self.init_project(plugins, options),
+                target,
+                templates
+            } => self.init_project(target, templates),
             Command::Install {
                 installer_type,
                 path,
@@ -57,7 +57,8 @@ impl Client {
         }
     }
 
-    fn init_project(&self, plugins: &Vec<String>, options: &Vec<String>) -> Result<(), Error> {
+    fn init_project(&self, target: &String, templates: &Vec<String>) -> Result<(), Error> {
+        is_correct_template_list(templates, &self.templates)?;
         Ok(())
     }
 
