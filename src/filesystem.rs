@@ -124,13 +124,7 @@ pub fn is_template_directory(directory: &PathBuf, entry: &DirEntry) -> bool {
     }
 }
 
-pub fn is_template_exist(template_name: &String) -> Result<bool, Error> {
-    let templates_directory = get_templates_directory()?;
-    let checked_template_path = templates_directory.join(template_name);
-    Ok(checked_template_path.is_dir() && checked_template_path.exists())
-}
-
-pub fn delete_repository(repository_name: &String) -> Result<(), Error> {
+pub fn delete_repository_by_name(repository_name: &String) -> Result<(), Error> {
     let templates_directory = get_templates_directory()?;
     let repository_path = templates_directory.join(repository_name);
     let operation_result = force_remove_all(repository_path)?;

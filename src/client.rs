@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::cli::{Command, EntityTypeEnum, InstallerTypeEnum};
 use crate::error::Error;
 use crate::filesystem::{
-    create_directory, delete_repository, get_templates_directory,
-    get_repositories_map, get_templates_map, is_template_exist
+    create_directory, delete_repository_by_name, delete_template_by_path,
+    get_templates_directory, get_repositories_map, get_templates_map,
 };
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
@@ -71,9 +71,19 @@ impl Client {
         let used_template_name = template_name
             .clone()
             .unwrap_or(worker.get_template_name(path)?);
-        if is_template_exist(&used_template_name)? {
+
+        let is_template_exist = self.templates.contains_key(&used_template_name);
+        let is_repository_exist = self.repositories.contains_key(&used_template_name);
+        if is_repository_exist || is_repository_exist {
             ask_for_replacing_template()?;
-            delete_repository(&used_template_name)?;
+
+            match is_template_exist {
+                true => {
+                    let path = self.templates.get(&used_template_name).unwrap();
+                    delete_template_by_path(path)?
+                },
+                false => delete_repository_by_name(&used_template_name)?
+            };
         }
 
         worker.install(path, &used_template_name)

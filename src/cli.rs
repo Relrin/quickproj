@@ -59,7 +59,7 @@ pub enum Command {
         )]
         template_name: Option<String>,
     },
-    /// Show list of the available repositories and templates
+    /// Show list of the available repositories or templates
     #[structopt(name = "list")]
     List {
         #[structopt(

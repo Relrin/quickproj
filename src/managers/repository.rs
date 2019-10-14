@@ -5,7 +5,7 @@ use indicatif::HumanDuration;
 
 use crate::constants::OPERATION_HAS_BEEN_COMPLETED_EMOJI;
 use crate::error::Error;
-use crate::filesystem::delete_repository;
+use crate::filesystem::delete_repository_by_name;
 use crate::managers::traits::Manager;
 
 pub struct RepositoryManager {
@@ -48,8 +48,7 @@ impl Manager for RepositoryManager {
         }
 
         let started = Instant::now();
-        let repository_path = self.repositories.get(name).unwrap();
-        delete_repository(repository_path)?;
+        delete_repository_by_name(name)?;
         println!(
             "{} Done in {}",
             OPERATION_HAS_BEEN_COMPLETED_EMOJI,
