@@ -1,6 +1,7 @@
 use git2::Error as Git2Error;
 use fs_extra::error::Error as FsExtraCallError;
 use quick_error::quick_error;
+use serde_json::error::Error as SerdeJsonError;
 
 use std::io::Error as StdIoError;
 
@@ -22,6 +23,11 @@ quick_error! {
             from()
             description("fs_extra error")
             display("FsExtra lib error: {}", err)
+        }
+        SerdeError(err: SerdeJsonError) {
+            from()
+            description("serde_json error")
+            display("SerdeJson lib error: {}", err)
         }
         Other(message: String) {
             description(message)

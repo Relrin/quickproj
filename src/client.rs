@@ -2,13 +2,10 @@ use std::collections::HashMap;
 
 use crate::cli::{Command, EntityTypeEnum, InstallerTypeEnum};
 use crate::error::Error;
-use crate::filesystem::{
-    create_directory, delete_repository_by_name, delete_template_by_path,
-    get_templates_directory, get_repositories_map, get_templates_map,
-};
+use crate::filesystem::{create_directory, delete_repository_by_name, delete_template_by_path, get_templates_directory, get_repositories_map, get_templates_map, basename};
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
-use crate::templates::{Handler, is_correct_template_list};
+use crate::templates::{is_correct_template_list, get_template_configs};
 use crate::terminal::ask_for_replacing_template;
 
 pub struct Client {
@@ -59,6 +56,8 @@ impl Client {
 
     fn init_project(&self, target: &String, templates: &Vec<String>) -> Result<(), Error> {
         is_correct_template_list(templates, &self.templates)?;
+        let project_name = basename(target, '/');
+        let configs = get_template_configs(&project_name, templates, &self.templates)?;
         Ok(())
     }
 

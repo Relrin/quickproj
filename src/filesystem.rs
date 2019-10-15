@@ -9,6 +9,8 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::error::Error;
 
+pub static CONFIG_NAME: &'static str = "config.json";
+
 pub fn get_home_directory() -> Result<PathBuf, Error> {
     match home_dir() {
         Some(home_dir_path) => Ok(home_dir_path),
@@ -115,7 +117,7 @@ pub fn is_template_directory(directory: &PathBuf, entry: &DirEntry) -> bool {
     let entry_path = entry.path();
     match entry.file_type().is_dir() && entry_path != directory {
         true => {
-            let config_path = entry_path.join("config.toml");
+            let config_path = entry_path.join(CONFIG_NAME);
             config_path.exists()
         }
         false => false,
