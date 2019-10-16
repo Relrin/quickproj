@@ -95,7 +95,16 @@ impl JsonConfig {
             return Err(Error::Other(message))
         }
 
-        // TODO: Add check for `from`/`to` keywords for each object
+        for record in self.files.sources.iter() {
+            if !record.contains_key("from") || !record.contains_key("to") {
+                let message = format!(
+                    "{} -> Each record in sources must have specified `from` and `to` \
+                    keys. Please, check for correctness the config.json file.",
+                    config_path.to_owned()
+                );
+                return Err(Error::Other(message))
+            }
+        }
         Ok(())
     }
 }

@@ -2,7 +2,11 @@ use std::collections::HashMap;
 
 use crate::cli::{Command, EntityTypeEnum, InstallerTypeEnum};
 use crate::error::Error;
-use crate::filesystem::{create_directory, delete_repository_by_name, delete_template_by_path, get_templates_directory, get_repositories_map, get_templates_map, basename};
+use crate::filesystem::{
+    create_directory, delete_repository_by_name, delete_template_by_path,
+    get_templates_directory, get_repositories_map, get_templates_map,
+    basename
+};
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
 use crate::templates::{is_correct_template_list, get_template_configs};
