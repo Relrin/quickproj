@@ -9,8 +9,9 @@ use crate::filesystem::{
 };
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
-use crate::templates::{is_correct_template_list, get_template_configs};
+use crate::templates::{Handler, is_correct_template_list, get_template_configs};
 use crate::terminal::ask_for_replacing_template;
+use serde::private::ser::constrain;
 
 pub struct Client {
     repositories: HashMap<String, String>,
@@ -58,11 +59,17 @@ impl Client {
         }
     }
 
-    fn init_project(&self, target: &String, templates: &Vec<String>) -> Result<(), Error> {
+    // TODO: Implement excluding and capturing config variables for the usage
+    fn init_project(
+        &self,
+        target_directory: &String,
+        templates: &Vec<String>
+    ) -> Result<(), Error> {
         is_correct_template_list(templates, &self.templates)?;
-        let project_name = basename(target, '/');
+        let project_name = basename(target_directory, '/');
         let configs = get_template_configs(&project_name, templates, &self.templates)?;
-        Ok(())
+        let handler = Handler::new();
+        handler.init_project(target_directory, &self.templates, &configs)
     }
 
     fn install_template(

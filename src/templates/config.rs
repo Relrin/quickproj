@@ -4,16 +4,16 @@ use std::fs::File;
 use std::io::prelude::Read;
 
 use serde::Deserialize;
-use serde_json::{from_str, Value as SerdeValue};
+use serde_json::{json, from_str, Map as SerdeMap, Value as SerdeValue};
 
 use crate::error::Error;
 use crate::filesystem::CONFIG_NAME;
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    project_name: Option<String>,
-    template_name: Option<String>,
-    json_config: JsonConfig,
+    pub project_name: Option<String>,
+    pub template_name: Option<String>,
+    pub json_config: JsonConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -28,7 +28,7 @@ pub struct FilesConfig {
     pub sources: Vec<HashMap<String, String>>,
     pub templates: Option<Vec<String>>,
     pub directories: Option<Vec<String>>,
-    pub aliases: Option<HashMap<String, String>>
+    pub aliases: Option<HashMap<String, SerdeValue>>
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -58,6 +58,55 @@ impl Config {
             project_name: self.project_name.clone(),
             template_name: Some(template_name.to_owned()),
             json_config: self.json_config.clone(),
+        }
+    }
+
+    pub fn get_template_context(&self) -> Box<SerdeValue> {
+        let mut context = SerdeMap::new();
+        self.add_config_definition_to_context(&mut context);
+        self.add_aliases_to_context(&mut context);
+        self.add_variables_to_context(&mut context);
+        Box::new(json!(context))
+    }
+
+    fn add_config_definition_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
+        context.insert(
+            "project_name".to_string(),
+            SerdeValue::String(self.project_name.clone().unwrap_or("unknown".to_string()))
+        );
+        context.insert(
+            "template_name".to_string(),
+            SerdeValue::String(self.template_name.clone().unwrap_or("unknown".to_string()))
+        );
+    }
+
+    fn add_aliases_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
+        let aliases = self.json_config.files.aliases.clone().unwrap_or_default();
+        self.inject_hashmap_in_context(&aliases, context);
+    }
+
+    fn add_variables_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
+        let variables = self.json_config.variables.clone().unwrap_or_default();
+        self.inject_hashmap_in_context(&variables, context);
+    }
+
+    fn inject_hashmap_in_context(
+        &self,
+        data: &HashMap<String, SerdeValue>,
+        context: &mut SerdeMap<String, SerdeValue>
+    ) {
+        for (key, value) in data.iter() {
+            match value {
+                SerdeValue::String(data) => {
+                    context.insert(key.to_string(), value.clone());
+                    ()
+                },
+                SerdeValue::Array(data) => {
+                    context.insert(key.to_string(), value.clone());
+                    ()
+                },
+                _ => {}
+            }
         }
     }
 }
