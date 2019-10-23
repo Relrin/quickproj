@@ -81,32 +81,35 @@ impl Config {
     }
 
     fn add_aliases_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
-        let aliases = self.json_config.files.aliases.clone().unwrap_or_default();
-        self.inject_hashmap_in_context(&aliases, context);
+        self.json_config.files.aliases.clone().unwrap_or_default()
+            .iter()
+            .map(|(key, value)| self.inject_value_in_context(key, value, context))
+            .collect()
     }
 
     fn add_variables_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
-        let variables = self.json_config.variables.clone().unwrap_or_default();
-        self.inject_hashmap_in_context(&variables, context);
+        self.json_config.variables.clone().unwrap_or_default()
+            .iter()
+            .map(|(key, value)| self.inject_value_in_context(key, value, context))
+            .collect()
     }
 
-    fn inject_hashmap_in_context(
+    fn inject_value_in_context(
         &self,
-        data: &HashMap<String, SerdeValue>,
+        key: &String,
+        value: &SerdeValue,
         context: &mut SerdeMap<String, SerdeValue>
     ) {
-        for (key, value) in data.iter() {
-            match value {
-                SerdeValue::String(data) => {
-                    context.insert(key.to_string(), value.clone());
-                    ()
-                },
-                SerdeValue::Array(data) => {
-                    context.insert(key.to_string(), value.clone());
-                    ()
-                },
-                _ => {}
-            }
+        match value {
+            SerdeValue::String(data) => {
+                context.insert(key.to_string(), value.clone());
+                ()
+            },
+            SerdeValue::Array(data) => {
+                context.insert(key.to_string(), value.clone());
+                ()
+            },
+            _ => {}
         }
     }
 }

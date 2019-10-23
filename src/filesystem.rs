@@ -135,3 +135,13 @@ pub fn delete_template_by_path(template_path: &String) -> Result<(), Error> {
     let operation_result = force_remove_all(template_path)?;
     Ok(operation_result)
 }
+
+pub fn sanitize_path(path: &String) -> String {
+    let mut sanitized_path = path.clone().trim().to_string();
+
+    if sanitized_path.ends_with('/') {
+        sanitized_path.pop();
+    }
+
+    sanitized_path
+}
