@@ -1,13 +1,22 @@
 use std::collections::{HashMap, BTreeSet};
 use std::fs::{File, read_to_string};
 use std::io::Write;
+use std::path::PathBuf;
 
 use handlebars::Handlebars;
 use quick_error::ResultExt;
+use regex::Regex;
 use serde_json::{json, Value as SerdeValue};
+use lazy_static::lazy_static;
 
 use crate::error::Error;
 use crate::templates::config::Config;
+use std::intrinsics::transmute;
+use crate::filesystem::basename;
+
+lazy_static! {
+    pub static ref TEMPLATE_VARIABLE_REGEX: Regex = Regex::new(r"\{\{\s*\b(?P<name>[\w\d_-]*)\b\s*}}").unwrap();
+}
 
 /// Checks that the specified templates are available to use.
 pub fn is_correct_template_list(
@@ -38,12 +47,22 @@ pub fn is_correct_template_list(
     }
 }
 
+/// Extract all template variables in according to the TEMPLATE_VARIABLE_REGEX regex.
+pub fn get_template_variables(data: &String) -> BTreeSet<String> {
+    let mut used_variables = BTreeSet::new();
+    for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(data) {
+        let value: String = capture["name"].to_string();
+        used_variables.insert(value);
+    }
+    used_variables
+}
+
 /// Generates new file based on the template with specified context
 pub fn generate_file_from_template(
     handlebars: &Handlebars,
     context: &SerdeValue,
-    template_path: &String,
-    out_file_path: &String,
+    template_path: &PathBuf,
+    out_file_path: &PathBuf,
 ) -> Result<(), Error> {
     let template = read_to_string(template_path).context(template_path)?;
 
@@ -56,12 +75,35 @@ pub fn generate_file_from_template(
     Ok(())
 }
 
-/// Generate all possible combinations of subcontexts that will be used for the template
+/// Merges two template contexts together with filtering by keys.
+pub fn merge_contexts(
+    a: &mut SerdeValue,
+    b: &SerdeValue,
+    keys: &BTreeSet<String>,
+) {
+    match (a, b) {
+        (&mut SerdeValue::Object(ref mut a), &SerdeValue::Object(ref b)) => {
+            for (key, value) in b {
+                let string_key = key.to_string();
+                if keys.contains(&string_key) && a.contains_key(&string_key) {
+                    continue
+                }
+
+                merge_contexts(a.entry(key.clone()).or_insert(SerdeValue::Null), value, keys)
+            }
+        },
+        (a, b) => {
+            *a = b.clone();
+        },
+    }
+}
+
+/// Generate all possible combinations of subcontexts that will be used for the template.
 pub fn generate_subcontexts(
     context: &Box<SerdeValue>,
     variables: &BTreeSet<String>
 ) -> Vec<SerdeValue> {
-    let mut data: Vec<HashMap<String, SerdeValue>> = variables
+    let mut data = variables
         .iter()
         .filter(|variable_name| {
             let value = match context.get(*variable_name) {

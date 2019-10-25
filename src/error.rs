@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use git2::Error as Git2Error;
 use fs_extra::error::Error as FsExtraCallError;
 use handlebars::TemplateRenderError;
@@ -19,6 +21,8 @@ quick_error! {
             display("I/O error with {}: {}", source, err)
             context(source: &'a String, err: StdIoError)
                 -> (err, source.to_string())
+            context(source: &PathBuf, err: StdIoError)
+                -> (err, source.to_str().unwrap().to_string())
         }
         Git(err: Git2Error) {
             from()
@@ -39,6 +43,8 @@ quick_error! {
             display("Template rendering error for {} file: {}", filename, err)
             context(filename: &'a String, err: TemplateRenderError)
                 -> (err, filename.to_string())
+            context(source: &PathBuf, err: TemplateRenderError)
+                -> (err, source.to_str().unwrap().to_string())
         }
         Other(message: String) {
             description(message)

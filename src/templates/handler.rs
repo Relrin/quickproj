@@ -5,18 +5,15 @@ use std::path::PathBuf;
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
 use handlebars::Handlebars;
-use regex::Regex;
 use serde_json::{json, Value as SerdeValue, Map};
-use lazy_static::lazy_static;
 
 use crate::error::Error;
 use crate::filesystem::{basename, create_directory, get_directory_objects};
 use crate::templates::config::Config;
-use crate::templates::utils::{generate_file_from_template, generate_subcontexts};
-
-lazy_static! {
-    static ref TEMPLATE_VARIABLE_REGEX: Regex = Regex::new(r"\{\{\s*\b(?P<name>[\w\d_-]*)\b\s*}}").unwrap();
-}
+use crate::templates::utils::{
+    TEMPLATE_VARIABLE_REGEX, generate_file_from_template, generate_subcontexts,
+    get_template_variables, merge_contexts
+};
 
 pub struct Handler {
     handlebars: Box<Handlebars>
@@ -72,16 +69,11 @@ impl Handler {
         config.clone().json_config.files.directories.unwrap_or_default()
             .iter()
             .filter(|directory| TEMPLATE_VARIABLE_REGEX.is_match(directory))
-            .map(|directory| {
-                let mut used_variables = BTreeSet::new();
-                for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(directory) {
-                    let value: String = capture["name"].to_string();
-                    used_variables.insert(value);
-                }
-
-                generate_subcontexts(context, &used_variables)
+            .for_each(|directory| {
+                let path_variables = get_template_variables(&directory);
+                generate_subcontexts(context, &path_variables)
                     .iter()
-                    .map(|subcontext| {
+                    .for_each(|subcontext| {
                         let template_path = self.handlebars
                             .render_template(directory, &subcontext)
                             .unwrap();
@@ -89,9 +81,7 @@ impl Handler {
                         let subdirectory_path = target_path.join(generated_path);
                         create_directory(&subdirectory_path).unwrap();
                     })
-                    .collect()
             })
-            .collect()
     }
 
     /// Creates directories based on the records in the config[files][source] space.
@@ -101,11 +91,10 @@ impl Handler {
             .map(|entry| entry.get("to").unwrap())
             .filter(|str_path| **str_path != String::from("."))
             .map(|path| PathBuf::from(path))
-            .map(|path| {
+            .for_each(|path| {
                 let directory_path = target_path.join(path);
                 create_directory(&directory_path).unwrap();
             })
-            .collect()
     }
 
     /// Copy files from config[files][sources] into the config[files][to] directory.
@@ -120,13 +109,12 @@ impl Handler {
                 };
                 (PathBuf::from(from_path), updated_to_path)
             })
-            .map(|(from_path, to_path)| {
+            .for_each(|(from_path, to_path)| {
                  let items_to_copy = get_directory_objects(&from_path);
                  let mut options = CopyOptions::new();
                  options.overwrite = true;
                  copy_items(&items_to_copy, to_path, &options).unwrap();
-            })
-            .collect()
+            });
     }
 
     /// Creates files specified in config[files][generated] with the prepared context.
@@ -138,58 +126,59 @@ impl Handler {
         let generated_files = config.clone().json_config.files.generated.unwrap_or_default();
         config.clone().json_config.files.templates.unwrap_or_default()
             .iter()
-            .map(|(template_name, template_path)| {
-                let files_to_create: Vec<PathBuf> = generated_files.clone()
+            .for_each(|(template_name, template_path)| {
+                // Get all template variables from the passed template
+                let source_path = PathBuf::from(config.template_path.clone().unwrap());
+                let full_template_path = source_path.join(PathBuf::from(template_path));
+                let template_data = read_to_string(full_template_path.clone()).unwrap();
+                let template_variables = get_template_variables(&template_data);
+
+                // Generate possible all variants of paths with the certain subcontext
+                let mut templates: HashMap<PathBuf, Box<SerdeValue>> = HashMap::new();
+                generated_files.clone()
                     .iter()
                     .filter(|path| path.ends_with(template_name))
-                    .map(|path| {
-                        let mut used_variables = BTreeSet::new();
-                        for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(path) {
-                            let value: String = capture["name"].to_string();
-                            used_variables.insert(value);
-                        }
+                    .for_each(|path| {
+                        // Let's start from the check for dynamic paths (if was specified)
+                        let path_variables = get_template_variables(&path);
+                        match path_variables.is_empty() {
+                            // Path is static. Shared context for everything
+                            true => {
+                                templates.insert(PathBuf::from(path), context.clone());
+                            },
+                            // Path is dynamic. Therefore each path has its own unique subcontext
+                            false => {
+                                generate_subcontexts(context, &path_variables)
+                                    .iter()
+                                    // Generate all unique paths
+                                    .map(|subcontext| {
+                                        let template_path = self.handlebars
+                                            .render_template(path, &subcontext)
+                                            .unwrap();
+                                        let generated_path = PathBuf::from(template_path);
+                                        (target_path.join(generated_path), subcontext)
+                                    })
+                                    // Then prepare a unique subcontext for each path
+                                    .for_each(|(template_path, partial_context)| {
+                                        let mut used_context = partial_context.clone();
+                                        merge_contexts(&mut used_context, context, &template_variables);
+                                        templates.insert(template_path.to_owned(), Box::new(used_context));
+                                    });
+                            }
+                        };
+                    });
 
-                        generate_subcontexts(context, &used_variables)
-                            .iter()
-                            .map(|subcontext| {
-                                let template_path = self.handlebars
-                                    .render_template(path, &subcontext)
-                                    .unwrap();
-                                let generated_path = PathBuf::from(template_path);
-                                target_path.join(generated_path)
-                            })
-                            .collect::<Vec<PathBuf>>()
-                    })
-                    .flatten()
-                    .collect();
-
-                files_to_create
+                // And then generate all files with its own subcontext
+                templates
                     .iter()
-                    .map(|target_file_path| {
-                        let source_path = PathBuf::from(config.template_path.clone().unwrap());
-                        let full_template_path = source_path.join(PathBuf::from(template_path)).to_str().unwrap().to_string();
-
-                        let template_data = read_to_string(full_template_path.clone()).unwrap();
-                        let mut used_variables = BTreeSet::new();
-                        for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(&template_data) {
-                            let value: String = capture["name"].to_string();
-                            used_variables.insert(value);
-                        }
-
-                        generate_subcontexts(context, &used_variables)
-                            .iter()
-                            .map(|subcontext| {
-                                generate_file_from_template(
-                                    &self.handlebars,
-                                    &subcontext,
-                                    &full_template_path,
-                                    &target_file_path.to_str().unwrap().to_string()
-                                ).unwrap();
-                            })
-                            .collect()
-                    })
-                    .collect()
-            })
-            .collect()
+                    .for_each(|(target_file_path, subcontext)| {
+                        generate_file_from_template(
+                            &self.handlebars,
+                            subcontext,
+                            &full_template_path,
+                            target_file_path
+                        ).unwrap();
+                    });
+            });
     }
 }
