@@ -40,11 +40,11 @@ pub fn is_correct_template_list(
 
 /// Generates new file based on the template with specified context
 pub fn generate_file_from_template(
-    context: Box<SerdeValue>,
+    handlebars: &Handlebars,
+    context: &SerdeValue,
     template_path: &String,
     out_file_path: &String,
 ) -> Result<(), Error> {
-    let handlebars = Handlebars::new();
     let template = read_to_string(template_path).context(template_path)?;
 
     let module = handlebars

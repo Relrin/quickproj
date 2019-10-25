@@ -33,9 +33,9 @@ pub struct JsonConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct FilesConfig {
     pub sources: Vec<HashMap<String, String>>,
-    pub templates: Option<Vec<String>>,
+    pub generated: Option<Vec<String>>,
     pub directories: Option<Vec<String>>,
-    pub aliases: Option<HashMap<String, SerdeValue>>
+    pub templates: Option<HashMap<String, String>>
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -108,7 +108,6 @@ impl Config {
     pub fn get_template_context(&self) -> Box<SerdeValue> {
         let mut context = SerdeMap::new();
         self.add_config_definition_to_context(&mut context);
-        self.add_aliases_to_context(&mut context);
         self.add_variables_to_context(&mut context);
         Box::new(json!(context))
     }
@@ -122,13 +121,6 @@ impl Config {
             "template_name".to_string(),
             SerdeValue::String(self.template_name.clone().unwrap_or("unknown".to_string()))
         );
-    }
-
-    fn add_aliases_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
-        self.json_config.files.aliases.clone().unwrap_or_default()
-            .iter()
-            .map(|(key, value)| self.inject_value_in_context(key, value, context))
-            .collect()
     }
 
     fn add_variables_to_context(&self, context: &mut SerdeMap<String, SerdeValue>) {
@@ -171,9 +163,9 @@ impl JsonConfig {
     }
 
     pub fn init_missing_fields(&mut self) {
-        self.files.templates = Some(self.files.templates.clone().unwrap_or_default());
+        self.files.generated = Some(self.files.generated.clone().unwrap_or_default());
         self.files.directories = Some(self.files.directories.clone().unwrap_or_default());
-        self.files.aliases = Some(self.files.aliases.clone().unwrap_or_default());
+        self.files.templates = Some(self.files.templates.clone().unwrap_or_default());
         self.variables = Some(self.variables.clone().unwrap_or_default());
 
         if self.scripts.is_none() {

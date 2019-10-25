@@ -1,4 +1,5 @@
 use std::collections::{HashMap, BTreeSet};
+use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use fs_extra::copy_items;
@@ -29,6 +30,7 @@ impl Handler {
     }
 
     // TODO: Replace on running in threads + add UI
+    // TODO: Error processing from threads?
     pub fn init_project(
         &self,
         target_directory_path: &String,
@@ -45,7 +47,6 @@ impl Handler {
         Ok(())
     }
 
-    // 3. Create file specified in config[files][templates] + provided the prepared context
     /// Runs task in the separate thread.
     fn run_in_thread(
         &self,
@@ -57,6 +58,7 @@ impl Handler {
         self.create_directories(project_directory_path, config, &context);
         self.create_target_directories(project_directory_path, config);
         self.copy_files(project_directory_path, config);
+        self.create_files_from_templates(project_directory_path, config, &context);
         Ok(())
     }
 
@@ -123,6 +125,70 @@ impl Handler {
                  let mut options = CopyOptions::new();
                  options.overwrite = true;
                  copy_items(&items_to_copy, to_path, &options).unwrap();
+            })
+            .collect()
+    }
+
+    /// Creates files specified in config[files][generated] with the prepared context.
+    fn create_files_from_templates(&self,
+        target_path: &PathBuf,
+        config: &Box<Config>,
+        context: &Box<SerdeValue>
+    ) {
+        let generated_files = config.clone().json_config.files.generated.unwrap_or_default();
+        config.clone().json_config.files.templates.unwrap_or_default()
+            .iter()
+            .map(|(template_name, template_path)| {
+                let files_to_create: Vec<PathBuf> = generated_files.clone()
+                    .iter()
+                    .filter(|path| path.ends_with(template_name))
+                    .map(|path| {
+                        let mut used_variables = BTreeSet::new();
+                        for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(path) {
+                            let value: String = capture["name"].to_string();
+                            used_variables.insert(value);
+                        }
+
+                        generate_subcontexts(context, &used_variables)
+                            .iter()
+                            .map(|subcontext| {
+                                let template_path = self.handlebars
+                                    .render_template(path, &subcontext)
+                                    .unwrap();
+                                let generated_path = PathBuf::from(template_path);
+                                target_path.join(generated_path)
+                            })
+                            .collect::<Vec<PathBuf>>()
+                    })
+                    .flatten()
+                    .collect();
+
+                files_to_create
+                    .iter()
+                    .map(|target_file_path| {
+                        let source_path = PathBuf::from(config.template_path.clone().unwrap());
+                        let full_template_path = source_path.join(PathBuf::from(template_path)).to_str().unwrap().to_string();
+
+                        let template_data = read_to_string(full_template_path.clone()).unwrap();
+                        let mut used_variables = BTreeSet::new();
+                        for capture in TEMPLATE_VARIABLE_REGEX.captures_iter(&template_data) {
+                            let value: String = capture["name"].to_string();
+                            used_variables.insert(value);
+                        }
+
+                        generate_subcontexts(context, &used_variables)
+                            .iter()
+                            .map(|subcontext| {
+                                generate_file_from_template(
+                                    &self.handlebars,
+                                    &subcontext,
+                                    &full_template_path,
+                                    &target_file_path.to_str().unwrap().to_string()
+                                ).unwrap();
+                            })
+                            .collect()
+                    })
+                    .collect()
             })
             .collect()
     }
