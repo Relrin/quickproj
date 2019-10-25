@@ -45,6 +45,15 @@ pub fn basename<'a>(path: &'a str, sep: char) -> String {
     String::from(result)
 }
 
+pub fn get_directory_objects(directory: &PathBuf) -> Vec<PathBuf> {
+    WalkDir::new(directory.clone())
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path() != directory)
+        .map(|entry| entry.clone().into_path())
+        .collect()
+}
+
 pub fn get_repositories_map() -> Result<HashMap<String, String>, Error> {
     let directory = get_templates_directory()?;
     let mut repositories: HashMap<String, String> = HashMap::new();

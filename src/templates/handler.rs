@@ -1,20 +1,20 @@
 use std::collections::{HashMap, BTreeSet};
 use std::path::PathBuf;
 
-use fs_extra::dir::copy;
+use fs_extra::copy_items;
+use fs_extra::dir::CopyOptions;
 use handlebars::Handlebars;
 use regex::Regex;
 use serde_json::{json, Value as SerdeValue, Map};
 use lazy_static::lazy_static;
 
 use crate::error::Error;
-use crate::filesystem::{basename, create_directory, sanitize_path};
+use crate::filesystem::{basename, create_directory, get_directory_objects};
 use crate::templates::config::Config;
 use crate::templates::utils::{generate_file_from_template, generate_subcontexts};
 
 lazy_static! {
     static ref TEMPLATE_VARIABLE_REGEX: Regex = Regex::new(r"\{\{\s*\b(?P<name>[\w\d_-]*)\b\s*}}").unwrap();
-    static ref DEFAULT_TARGET_DIRECTORY: String = String::from(".");
 }
 
 pub struct Handler {
@@ -45,8 +45,6 @@ impl Handler {
         Ok(())
     }
 
-    // 1. Create folders specified in config[files][to]
-    // 2. Copy files from config[files][sources] into the config[files][to]
     // 3. Create file specified in config[files][templates] + provided the prepared context
     /// Runs task in the separate thread.
     fn run_in_thread(
@@ -58,6 +56,7 @@ impl Handler {
         let context = config.get_template_context();
         self.create_directories(project_directory_path, config, &context);
         self.create_target_directories(project_directory_path, config);
+        self.copy_files(project_directory_path, config);
         Ok(())
     }
 
@@ -95,25 +94,35 @@ impl Handler {
 
     /// Creates directories based on the records in the config[files][source] space.
     fn create_target_directories(&self, target_path: &PathBuf, config: &Box<Config>) {
-        config.clone().json_config.files.sources.clone()
+        config.get_source_entries()
             .iter()
-            .map(|entry| {
-                let path = entry
-                    .get("to")
-                    .unwrap_or(&DEFAULT_TARGET_DIRECTORY);
-                sanitize_path(path)
-            })
-            .filter(|str_path| str_path != ".")
-            .map(|str_path| {
-                match str_path.starts_with("./") {
-                    true => str_path.replacen("./", "", 1),
-                    false => str_path,
-                }
-            })
+            .map(|entry| entry.get("to").unwrap())
+            .filter(|str_path| **str_path != String::from("."))
             .map(|path| PathBuf::from(path))
             .map(|path| {
                 let directory_path = target_path.join(path);
                 create_directory(&directory_path).unwrap();
+            })
+            .collect()
+    }
+
+    /// Copy files from config[files][sources] into the config[files][to] directory.
+    fn copy_files(&self, target_path: &PathBuf, config: &Box<Config>) {
+        config.get_source_entries()
+            .iter()
+            .map(|entry| (entry.get("from").unwrap(), entry.get("to").unwrap()))
+            .map(|(from_path, to_path)| {
+                let updated_to_path = match to_path == "." {
+                    true => target_path.clone(),
+                    false => target_path.join(to_path),
+                };
+                (PathBuf::from(from_path), updated_to_path)
+            })
+            .map(|(from_path, to_path)| {
+                 let items_to_copy = get_directory_objects(&from_path);
+                 let mut options = CopyOptions::new();
+                 options.overwrite = true;
+                 copy_items(&items_to_copy, to_path, &options).unwrap();
             })
             .collect()
     }
