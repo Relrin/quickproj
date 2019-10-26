@@ -10,9 +10,6 @@ use serde_json::{json, Value as SerdeValue};
 use lazy_static::lazy_static;
 
 use crate::error::Error;
-use crate::templates::config::Config;
-use std::intrinsics::transmute;
-use crate::filesystem::basename;
 
 lazy_static! {
     pub static ref TEMPLATE_VARIABLE_REGEX: Regex = Regex::new(r"\{\{\s*\b(?P<name>[\w\d_-]*)\b\s*}}").unwrap();

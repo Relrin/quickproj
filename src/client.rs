@@ -12,7 +12,6 @@ use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
 use crate::templates::{Handler, is_correct_template_list, get_template_configs};
 use crate::terminal::ask_for_replacing_template;
-use serde::private::ser::constrain;
 
 pub struct Client {
     repositories: HashMap<String, String>,

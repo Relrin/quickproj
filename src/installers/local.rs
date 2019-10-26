@@ -3,7 +3,6 @@ use std::time::Instant;
 use bytesize::ByteSize;
 use fs_extra::dir::{CopyOptions, TransitProcess, copy_with_progress};
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
-use quick_error::ResultExt;
 
 use crate::constants::{COPYING_REPOSITORY_EMOJI, OPERATION_HAS_BEEN_COMPLETED_EMOJI};
 use crate::error::Error;
@@ -64,7 +63,7 @@ impl Installer for LocalInstaller {
         let started = Instant::now();
 
         let copy_pb = self.get_copy_progress_bar();
-        create_directory(&destination);
+        create_directory(&destination)?;
         let options = CopyOptions::new();
         let handle = |state: TransitProcess|  {
             self.refresh_copy_progress_bar(&copy_pb, &state);

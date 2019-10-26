@@ -5,7 +5,7 @@ use std::io::prelude::Read;
 use std::path::PathBuf;
 
 use serde::Deserialize;
-use serde_json::{json, from_str, Map as SerdeMap, Value as SerdeValue};
+use serde_json::{json, Map as SerdeMap, Value as SerdeValue};
 use lazy_static::lazy_static;
 
 use crate::error::Error;
@@ -19,7 +19,6 @@ lazy_static! {
 pub struct Config {
     pub project_name: Option<String>,
     pub template_name: Option<String>,
-    pub template_path: Option<String>,
     pub json_config: JsonConfig,
 }
 
@@ -48,7 +47,6 @@ impl Config {
         Config {
             project_name: None,
             template_name: None,
-            template_path: None,
             json_config
         }
     }
@@ -63,21 +61,16 @@ impl Config {
         self
     }
 
-    pub fn with_template_path(mut self, template_path: &String) -> Self {
-        self.template_path = Some(template_path.to_owned());
-        self
-    }
-
-    pub fn get_source_entries(&self) -> Vec<HashMap<String, String>> {
+    pub fn get_source_entries(&self, template_path: &PathBuf) -> Vec<HashMap<String, String>> {
         self.json_config.files.sources.clone()
             .iter()
             .map(|entry| {
                 let from_path = entry.get("from").unwrap();
                 let updated_from_path = match from_path.starts_with(".") {
-                    true => self.template_path.clone().unwrap_or(from_path.to_owned()),
+                    true => template_path.clone().to_str().unwrap().to_string(),
                     false => {
-                        let base_path = self.template_path.clone().unwrap_or(from_path.to_owned());
-                        PathBuf::from(base_path)
+                        template_path
+                            .clone()
                             .join(PathBuf::from(from_path))
                             .into_os_string()
                             .into_string()
@@ -137,11 +130,11 @@ impl Config {
         context: &mut SerdeMap<String, SerdeValue>
     ) {
         match value {
-            SerdeValue::String(data) => {
+            SerdeValue::String(_) => {
                 context.insert(key.to_string(), value.clone());
                 ()
             },
-            SerdeValue::Array(data) => {
+            SerdeValue::Array(_) => {
                 context.insert(key.to_string(), value.clone());
                 ()
             },
@@ -218,8 +211,7 @@ pub fn get_template_configs(
         let json_config = JsonConfig::from_file(&path)?;
         let config = Config::new(json_config)
             .with_project_name(&project_name.to_owned())
-            .with_template_name(&template_name.to_owned())
-            .with_template_path(&dir.to_owned());
+            .with_template_name(&template_name.to_owned());
         configs.insert(template_name.clone(), Box::new(config));
     }
 

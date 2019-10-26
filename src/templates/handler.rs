@@ -1,14 +1,14 @@
-use std::collections::{HashMap, BTreeSet};
+use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
 use handlebars::Handlebars;
-use serde_json::{json, Value as SerdeValue, Map};
+use serde_json::Value as SerdeValue;
 
 use crate::error::Error;
-use crate::filesystem::{basename, create_directory, get_directory_objects};
+use crate::filesystem::{create_directory, get_directory_objects};
 use crate::templates::config::Config;
 use crate::templates::utils::{
     TEMPLATE_VARIABLE_REGEX, generate_file_from_template, generate_subcontexts,
@@ -35,11 +35,11 @@ impl Handler {
         configs: &HashMap<String, Box<Config>>
     ) -> Result<(), Error> {
         let project_directory_path = PathBuf::from(target_directory_path);
-        create_directory(&project_directory_path);
+        create_directory(&project_directory_path)?;
 
         for (template_name, config) in configs {
-            let template_directory_path = templates.get(template_name).unwrap();
-            self.run_in_thread(&project_directory_path, template_directory_path, config)?;
+            let template_directory_path = PathBuf::from(templates.get(template_name).unwrap());
+            self.run_in_thread(&project_directory_path, &template_directory_path, config)?;
         }
         Ok(())
     }
@@ -48,14 +48,14 @@ impl Handler {
     fn run_in_thread(
         &self,
         project_directory_path: &PathBuf,
-        template_directory_path: &String,
+        template_directory_path: &PathBuf,
         config: &Box<Config>
     ) -> Result<(), Error> {
         let context = config.get_template_context();
         self.create_directories(project_directory_path, config, &context);
-        self.create_target_directories(project_directory_path, config);
-        self.copy_files(project_directory_path, config);
-        self.create_files_from_templates(project_directory_path, config, &context);
+        self.create_target_directories(project_directory_path, template_directory_path, config);
+        self.copy_files(project_directory_path, template_directory_path, config);
+        self.create_files_from_templates(project_directory_path, template_directory_path, config, &context);
         Ok(())
     }
 
@@ -85,8 +85,13 @@ impl Handler {
     }
 
     /// Creates directories based on the records in the config[files][source] space.
-    fn create_target_directories(&self, target_path: &PathBuf, config: &Box<Config>) {
-        config.get_source_entries()
+    fn create_target_directories(
+        &self,
+        target_path: &PathBuf,
+        template_directory_path: &PathBuf,
+        config: &Box<Config>
+    ) {
+        config.get_source_entries(template_directory_path)
             .iter()
             .map(|entry| entry.get("to").unwrap())
             .filter(|str_path| **str_path != String::from("."))
@@ -98,8 +103,13 @@ impl Handler {
     }
 
     /// Copy files from config[files][sources] into the config[files][to] directory.
-    fn copy_files(&self, target_path: &PathBuf, config: &Box<Config>) {
-        config.get_source_entries()
+    fn copy_files(
+        &self,
+        target_path: &PathBuf,
+        template_directory_path: &PathBuf,
+        config: &Box<Config>
+    ) {
+        config.get_source_entries(template_directory_path)
             .iter()
             .map(|entry| (entry.get("from").unwrap(), entry.get("to").unwrap()))
             .map(|(from_path, to_path)| {
@@ -120,6 +130,7 @@ impl Handler {
     /// Creates files specified in config[files][generated] with the prepared context.
     fn create_files_from_templates(&self,
         target_path: &PathBuf,
+        root_template_path: &PathBuf,
         config: &Box<Config>,
         context: &Box<SerdeValue>
     ) {
@@ -128,8 +139,7 @@ impl Handler {
             .iter()
             .for_each(|(template_name, template_path)| {
                 // Get all template variables from the passed template
-                let source_path = PathBuf::from(config.template_path.clone().unwrap());
-                let full_template_path = source_path.join(PathBuf::from(template_path));
+                let full_template_path = root_template_path.join(PathBuf::from(template_path));
                 let template_data = read_to_string(full_template_path.clone()).unwrap();
                 let template_variables = get_template_variables(&template_data);
 
