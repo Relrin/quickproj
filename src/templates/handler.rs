@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use std::time::Instant;
 
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
+use indicatif::HumanDuration;
 use handlebars::Handlebars;
 use serde_json::Value as SerdeValue;
 
+use crate::constants::OPERATION_HAS_BEEN_COMPLETED_EMOJI;
 use crate::error::Error;
 use crate::filesystem::{create_directory, get_directory_objects};
 use crate::templates::config::Config;
@@ -33,6 +36,7 @@ impl Handler {
         templates: &HashMap<String, String>,
         configs: &HashMap<String, Box<Config>>
     ) -> Result<(), Error> {
+        let started = Instant::now();
         let project_directory_path = PathBuf::from(target_directory_path);
         create_directory(&project_directory_path)?;
 
@@ -40,6 +44,12 @@ impl Handler {
             let template_directory_path = PathBuf::from(templates.get(template_name).unwrap());
             self.run_task(&project_directory_path, &template_directory_path, config)?;
         }
+
+        println!(
+            "{} Done in {}",
+            OPERATION_HAS_BEEN_COMPLETED_EMOJI,
+            HumanDuration(started.elapsed())
+        );
         Ok(())
     }
 
