@@ -26,8 +26,7 @@ impl Handler {
         }
     }
 
-    // TODO: Replace on running in threads + add UI
-    // TODO: Error processing from threads?
+    /// Initializes the target directory with the specified templates.
     pub fn init_project(
         &self,
         target_directory_path: &String,
@@ -39,23 +38,23 @@ impl Handler {
 
         for (template_name, config) in configs {
             let template_directory_path = PathBuf::from(templates.get(template_name).unwrap());
-            self.run_in_thread(&project_directory_path, &template_directory_path, config)?;
+            self.run_task(&project_directory_path, &template_directory_path, config)?;
         }
         Ok(())
     }
 
-    /// Runs task in the separate thread.
-    fn run_in_thread(
+    /// Runs task for preparing a new project from the template.
+    fn run_task(
         &self,
         project_directory_path: &PathBuf,
         template_directory_path: &PathBuf,
         config: &Box<Config>
     ) -> Result<(), Error> {
         let context = config.get_template_context();
-        self.create_directories(project_directory_path, config, &context);
-        self.create_target_directories(project_directory_path, template_directory_path, config);
-        self.copy_files(project_directory_path, template_directory_path, config);
-        self.create_files_from_templates(project_directory_path, template_directory_path, config, &context);
+        self.create_directories(project_directory_path, config, &context)?;
+        self.create_target_directories(project_directory_path, template_directory_path, config)?;
+        self.copy_files(project_directory_path, template_directory_path, config)?;
+        self.create_files_from_templates(project_directory_path, template_directory_path, config, &context)?;
         Ok(())
     }
 
@@ -65,7 +64,7 @@ impl Handler {
         target_path: &PathBuf,
         config: &Box<Config>,
         context: &Box<SerdeValue>
-    ) {
+    ) -> Result<(), Error> {
         config.clone().json_config.files.directories.unwrap_or_default()
             .iter()
             .filter(|directory| TEMPLATE_VARIABLE_REGEX.is_match(directory))
@@ -81,7 +80,8 @@ impl Handler {
                         let subdirectory_path = target_path.join(generated_path);
                         create_directory(&subdirectory_path).unwrap();
                     })
-            })
+            });
+        Ok(())
     }
 
     /// Creates directories based on the records in the config[files][source] space.
@@ -90,7 +90,7 @@ impl Handler {
         target_path: &PathBuf,
         template_directory_path: &PathBuf,
         config: &Box<Config>
-    ) {
+    ) -> Result<(), Error> {
         config.get_source_entries(template_directory_path)
             .iter()
             .map(|entry| entry.get("to").unwrap())
@@ -99,7 +99,8 @@ impl Handler {
             .for_each(|path| {
                 let directory_path = target_path.join(path);
                 create_directory(&directory_path).unwrap();
-            })
+            });
+        Ok(())
     }
 
     /// Copy files from config[files][sources] into the config[files][to] directory.
@@ -108,7 +109,7 @@ impl Handler {
         target_path: &PathBuf,
         template_directory_path: &PathBuf,
         config: &Box<Config>
-    ) {
+    ) -> Result<(), Error> {
         config.get_source_entries(template_directory_path)
             .iter()
             .map(|entry| (entry.get("from").unwrap(), entry.get("to").unwrap()))
@@ -125,6 +126,7 @@ impl Handler {
                  options.overwrite = true;
                  copy_items(&items_to_copy, to_path, &options).unwrap();
             });
+        Ok(())
     }
 
     /// Creates files specified in config[files][generated] with the prepared context.
@@ -133,7 +135,7 @@ impl Handler {
         root_template_path: &PathBuf,
         config: &Box<Config>,
         context: &Box<SerdeValue>
-    ) {
+    ) -> Result<(), Error> {
         let generated_files = config.clone().json_config.files.generated.unwrap_or_default();
         config.clone().json_config.files.templates.unwrap_or_default()
             .iter()
@@ -190,5 +192,6 @@ impl Handler {
                         ).unwrap();
                     });
             });
+        Ok(())
     }
 }
