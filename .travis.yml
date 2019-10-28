@@ -1,0 +1,62 @@
+dist: trusty
+language: rust
+services: docker
+sudo: true
+
+env:
+  global:
+    - CRATE_NAME=quickproj
+
+matrix:
+  include:
+    # Windows
+    - env: TARGET=x86_64-pc-windows-gnu
+
+    # Linux
+    - env: TARGET=x86_64-unknown-linux-gnu
+
+    # OSX
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+before_install:
+  - set -e
+  - rustup self update
+
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
+
+script:
+  - bash ci/script.sh
+
+after_script: set +e
+
+before_deploy:
+  - sh ci/before_deploy.sh
+
+deploy:
+
+  api_key:
+    secure: sF0Rb4cmm4/W8no0s4hsh9vJ8mO9ovVE/hlH03YDZ20uJpbkPyvMpFRrJGGy5ut037Nv6KHXGb8iQP/x5fFZwlQyziNyS2Bgy7pG5QP97XpunSe28Eef8jmiTEehWViajqpXN0sWBPBaU5n9yPPnE0ktibO6aTSBAuDBLCGdLsmZmu/IXz2bUbRPIki61cI7K5GAsDt80PxBg9OXuLtsFw4fXToUaGOim30ycSXI3XK5IHP7NlFJR51qSmXmC4fU5Vp4ivtMMOhibmNjvP8/f9o8bFpeukPxQnia9QNjnYlJ7SuhbVjWthm+/hGoRAF9K8tjl+sGB7P2w1qAt1o5OjYQiWl8Ia7dOZxGovcK+8jI9u+2Nv3/GO3i8+kF094/mB0TKasonU7PEgZvUQr+xRu5CqX1V2naQFLCG/j6SdWT+H3lAlSC2631Juk4ZA4J2V7mQomdf0W3noGOl6PGaQrTEM/UPdKHhZMcfCdq0Dtb/3/2naWzO9NHElSqw/qdQxtK/hZWgfnMF7qupbVyBM7UNSo1TYBJcpwSt0O15HxyLXxS/9tezP+446eg7gaYBVpduO9oLZrMDPxEIXNgunuYIdkf/7nvtyA/Lv1MH1NjHSNrilQc5ilUeDgUdQ5CJKFTSL9K1qyiJm95k6NMfZ/OchvhO2yca1/AhG7QFUY="
+  file_glob: true
+  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
+  on:
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+  provider: releases
+  skip_cleanup: true
+
+cache: cargo
+before_cache:
+  - chmod -R a+r $HOME/.cargo
+
+branches:
+  only:
+    # release tags
+    - /^v\d+\.\d+\.\d+\w*$/
+    - master
+
+notifications:
+  email:
+    on_success: never
