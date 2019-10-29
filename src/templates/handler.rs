@@ -22,7 +22,7 @@ impl Handler {
         &self,
         target_directory_path: &String,
         templates: &HashMap<String, String>,
-        configs: &HashMap<String, Box<Config>>
+        configs: &HashMap<String, Box<Config>>,
     ) -> Result<(), Error> {
         let started = Instant::now();
         let project_directory_path = PathBuf::from(target_directory_path);

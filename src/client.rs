@@ -10,8 +10,8 @@ use crate::filesystem::{
 };
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
-use crate::templates::{Handler, is_correct_template_list, get_template_configs};
-use crate::terminal::ask_for_replacing_template;
+use crate::templates::{Config, Handler, is_correct_template_list, get_template_configs};
+use crate::terminal::{ask_for_replacing_template, ask_for_input};
 
 pub struct Client {
     repositories: HashMap<String, String>,
@@ -37,8 +37,10 @@ impl Client {
         let result = match command {
             Command::Init {
                 target,
+                with_override,
+                override_all,
                 templates
-            } => self.init_project(target, templates),
+            } => self.init_project(target, with_override, override_all, templates),
             Command::Install {
                 installer_type,
                 path,
@@ -59,18 +61,80 @@ impl Client {
         }
     }
 
-    // TODO: Implement excluding and capturing config variables for the usage
     fn init_project(
         &self,
         target_directory: &String,
+        with_override: &Option<String>,
+        override_all_flag: &bool,
         templates: &Vec<String>
     ) -> Result<(), Error> {
         is_correct_template_list(templates, &self.templates)?;
         let target = sanitize_path(target_directory);
         let project_name = basename(&target, '/');
-        let configs = get_template_configs(&project_name, templates, &self.templates)?;
+        let mut configs = get_template_configs(&project_name, templates, &self.templates)?;
+        self.override_default_configs(with_override, override_all_flag, &mut configs)?;
         let handler = Handler::new();
         handler.init_project(&target, &self.templates, &configs)
+    }
+
+    fn override_default_configs(
+        &self,
+        with_override: &Option<String>,
+        override_all_flag: &bool,
+        configs: &mut HashMap<String, Box<Config>>,
+    ) -> Result<(), Error> {
+        let overridable_configs: Vec<String> = match override_all_flag {
+            true => configs.keys().map(|key| key.to_owned()).collect(),
+            false => {
+                match with_override {
+                    Some(value) => {
+                        let overridable_templates: Vec<String> = value
+                            .split(",")
+                            .collect::<Vec<&str>>()
+                            .iter()
+                            .filter(|raw_str| !raw_str.is_empty())
+                            .map(|raw_str| String::from(*raw_str))
+                            .collect();
+
+                        is_correct_template_list(&overridable_templates, &self.templates)?;
+                        overridable_templates
+                    },
+                    None => Vec::new(),
+                }
+            }
+        };
+
+        if !overridable_configs.is_empty() {
+            println!("Overriding variables for the templates...");
+            println!("HINT: Use the Enter key to replace the value or left the default.");
+        }
+
+        overridable_configs
+            .iter()
+            .for_each(|template_name| {
+                let mut config = configs.get(template_name).unwrap().clone();
+                let mut variables = config.json_config.variables.clone().unwrap_or_default();
+
+                let mut user_data = HashMap::new();
+                variables
+                    .iter()
+                    .for_each(|(variable_name, default_value)| {
+                        let used_value = match ask_for_input(template_name, variable_name, default_value) {
+                            Some(input) => input,
+                            None => default_value.to_owned(),
+                        };
+
+                        user_data.insert(variable_name.to_owned(), used_value);
+                    });
+
+                if !user_data.is_empty() {
+                    variables.extend(user_data);
+                    config.json_config.variables = Some(variables);
+                    configs.insert(template_name.to_owned(), config);
+                }
+            });
+
+        Ok(())
     }
 
     fn install_template(

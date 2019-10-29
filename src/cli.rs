@@ -32,6 +32,17 @@ pub enum Command {
         )]
         target: String,
         #[structopt(
+            name = "list",
+            long = "--override",
+            help = "List of templates (separated by comma) with overridable configurations."
+        )]
+        with_override: Option<String>,
+        #[structopt(
+            long = "--override-all",
+            help = "Require to override all specified templates"
+        )]
+        override_all: bool,
+        #[structopt(
             name = "templates",
             help = "Used templates for a project generation."
         )]
