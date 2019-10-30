@@ -3,6 +3,12 @@ name = "quickproj"
 version = "0.1.0"
 authors = ["Valeryi Savich <relrin78@gmail.com>"]
 edition = "2018"
+readme = "README.md"
+license = "BSD-3-Clause"
+description = "Flexible project creation for minimalists"
+homepage = "https://github.com/Relrin/quickproj"
+repository = "https://github.com/Relrin/quickproj"
+keywords = ["cookiecutter", "template-project", "cli"]
 
 [dependencies]
 bytesize = "1.0"
