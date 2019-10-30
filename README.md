@@ -130,4 +130,4 @@ Hitting the `Enter` key or setting the empty string for the certain key will lea
 
 ## License
 
-The terraform-sage project is published under BSD license. For more details read the [LICENSE](https://github.com/Relrin/quickproj/blob/master/LICENSE) file.
+The quickproj is published under BSD license. For more details read the [LICENSE](https://github.com/Relrin/quickproj/blob/master/LICENSE) file.
