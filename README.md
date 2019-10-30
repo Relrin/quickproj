@@ -24,7 +24,7 @@ Flexible project creation for minimalists
   
         Move the binary file to the `/usr/local/bin` directory and restart the terminal
         ```
-        mv ~/Downloads/terraform-sage /usr/local/bin
+        mv ~/Downloads/quickproj /usr/local/bin
         ```
     
     - Windows
