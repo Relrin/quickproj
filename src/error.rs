@@ -21,6 +21,8 @@ quick_error! {
             display("I/O error with {}: {}", source, err)
             context(source: &'a String, err: StdIoError)
                 -> (err, source.to_string())
+            context(source: &'a str, err: StdIoError)
+                -> (err, String::from(source))
             context(source: &PathBuf, err: StdIoError)
                 -> (err, source.to_str().unwrap().to_string())
         }

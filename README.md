@@ -14,6 +14,9 @@ Flexible project creation for minimalists
 - Validating and parsing JSON configs
 - Overriding config variables via user's input (with validation)
 
+## Example of usage
+<img src="https://github.com/Relrin/quickproj/blob/master/screenshots/demo.gif?raw=true">
+
 ## Quick start
 
 1. Download executable/binary file in according to the used operation system from the [releases page](https://github.com/Relrin/quickproj/releases).
@@ -50,7 +53,7 @@ A: No, it isn't possible to run the command in multi-threaded at the moment. Alt
 Each installed template has to have configuration file (named as the `config.json`) in the root template folder and files that needs to copy or generate for the new project.
 
 ### Configuration parameters
-As the example we will take one of the existing templates for the `quickproj` ([original](https://github.com/Relrin/quickproj-templates/blob/master/terraform-sage/config.json) file) application:
+As the example we will take and modify one of the existing templates for the `quickproj` ([original](https://github.com/Relrin/quickproj-templates/blob/master/terraform-sage/config.json) file) application:
 ```json
   
 {
@@ -73,6 +76,11 @@ As the example we will take one of the existing templates for the `quickproj` ([
         "dev", 
         "production", 
         "staging"
+    ]
+  },
+  "scripts": {
+    "after_init": [
+       "ls -al"
     ]
   }
 }
@@ -127,6 +135,14 @@ During the overriding stage (when the CLI will ask you to specify the value to o
 - Non-empty string, where each value separated by the `,` for the `array of strings` type.
 
 Hitting the `Enter` key or setting the empty string for the certain key will lead to using the default value, specified in the configuration.
+
+### Scripts
+Optional section that describes a list of commands/scripts that could be executed during the template installation process.
+
+- `after_init`
+
+   Required to be defined as the array of strings, where each string represented as the certain command needs to be executed after the template installation process.
+   For example from the example on top, the application will execute the `ls -al` command to output the list of files in the current directory.  
 
 ## License
 
