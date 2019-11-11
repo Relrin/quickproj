@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env::set_current_dir;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Instant;
@@ -38,7 +37,7 @@ impl Handler {
         }
 
         println!("Running post-hooks...");
-        for (template_name, config) in configs {
+        for (_template_name, config) in configs {
             let scripts = config.json_config
                 .scripts.clone().unwrap_or_default()
                 .after_init.unwrap_or_default();
