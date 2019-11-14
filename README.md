@@ -125,7 +125,7 @@ Stores all variables that can be used during the project generation and can be o
 
 Each variable, specified in this section has to met the following requirements:
 - The key can be represented only as the `string` type.
-- The value can be represented as the string of as the `array of strings`. 
+- The value can be represented as the `string` or as the `array of strings` types. 
 
 Key / values pairs that won't met the requirements will be ignored and not used during the project generation.
 
