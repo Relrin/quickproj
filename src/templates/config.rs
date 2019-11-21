@@ -167,15 +167,6 @@ impl JsonConfig {
     }
 
     pub fn validate(&self, config_path: &String) -> Result<(), Error> {
-        if self.files.sources.is_empty() {
-            let message = format!(
-                "{} -> Sources can't be empty. Please, specify at least one record with \
-                a directory or a file which have to be copied to the target directory.",
-                config_path.to_owned()
-            );
-            return Err(Error::Other(message))
-        }
-
         for record in self.files.sources.iter() {
             if !record.contains_key("from") || !record.contains_key("to") {
                 let message = format!(
