@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::prelude::Read;
 use std::path::PathBuf;
 
+use regex::Regex;
 use serde::Deserialize;
 use serde_json::{json, Map as SerdeMap, Value as SerdeValue};
 use lazy_static::lazy_static;
@@ -13,6 +14,7 @@ use crate::filesystem::CONFIG_NAME;
 
 lazy_static! {
     static ref DEFAULT_TARGET_DIRECTORY: String = String::from(".");
+    static ref REFERENCE_VARIABLE_REGEX: Regex = Regex::new(r"\{\{\s*\bVars.(?P<name>[\w\d_-]*)\b\s*}}").unwrap();
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +29,7 @@ pub struct JsonConfig {
     pub files: FilesConfig,
     pub variables: Option<HashMap<String, SerdeValue>>,
     pub scripts: Option<ScriptsConfig>,
+    pub storage: Option<StorageConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -40,6 +43,11 @@ pub struct FilesConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ScriptsConfig {
     pub after_init: Option<Vec<String>>
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct StorageConfig {
+    pub variables: Option<HashMap<String, SerdeValue>>,
 }
 
 impl Config {
@@ -164,6 +172,10 @@ impl JsonConfig {
         if self.scripts.is_none() {
             self.scripts = Some(ScriptsConfig::default());
         }
+
+        if self.storage.is_none() {
+            self.storage = Some(StorageConfig::default())
+        }
     }
 
     pub fn validate(&self, config_path: &String) -> Result<(), Error> {
@@ -177,6 +189,83 @@ impl JsonConfig {
                 return Err(Error::Other(message))
             }
         }
+
+        let overridable_variables = self.variables.clone().unwrap_or_default();
+        self.validate_hashmap_values(config_path, "variables", &overridable_variables)?;
+
+        let storage_variables = self.storage.clone().unwrap_or_default().variables.unwrap_or_default();
+        self.validate_hashmap_values(config_path, "storage.variables", &storage_variables)?;
+        self.validate_variable_references(config_path, &storage_variables)?;
+
+        Ok(())
+    }
+
+    fn validate_hashmap_values(
+        &self,
+        config_path: &String,
+        key_prefix: &str,
+        hashmap: &HashMap<String, SerdeValue>,
+    ) -> Result<(), Error> {
+        for (key, serde_value) in hashmap {
+            match serde_value {
+                SerdeValue::String(_) => {},
+                SerdeValue::Array(_) => {},
+                _ => {
+                    let message = format!(
+                        "{}: The {}.{} key has unsupported value type. The configuration \
+                        supports only string and array of strings types.",
+                        config_path.to_owned(), key_prefix.to_owned(), key.to_owned()
+                    );
+                    return Err(Error::Other(message))
+                }
+            }
+        };
+
+        Ok(())
+    }
+
+    fn validate_variable_references(
+        &self,
+        config_path: &String,
+        hashmap: &HashMap<String, SerdeValue>,
+    ) -> Result<(), Error> {
+        for (key, serde_value) in hashmap {
+            match serde_value {
+                SerdeValue::String(value) => {
+                    self.validate_reference(config_path, key, value)?
+                },
+                SerdeValue::Array(array) => {
+                    for item in array {
+                        let value = format!("{}", item);
+                        self.validate_reference(config_path, key, &value)?
+                    }
+                },
+                _ => unreachable!(),
+            };
+        };
+
+        Ok(())
+    }
+
+    fn validate_reference(
+        &self,
+        config_path: &String,
+        key: &String,
+        value: &String,
+    ) -> Result<(), Error> {
+        let escaped_value = value.trim_matches('\"');
+        let is_template_variable =  escaped_value.starts_with("{{") && escaped_value.ends_with("}}");
+        let is_invalid_reference = !REFERENCE_VARIABLE_REGEX.is_match(value);
+
+        if is_template_variable && is_invalid_reference {
+            let message = format!(
+                "{}: The storage.variables.{} key has an invalid reference. \
+                The invalid reference is `{}`. Please, make sure that the path \
+                starts with `Vars.` and the specified variable exists.",
+                config_path.to_owned(), key.to_owned(), value.to_owned()
+            );
+            return Err(Error::Other(message))
+        }
         Ok(())
     }
 }
@@ -185,6 +274,14 @@ impl Default for ScriptsConfig {
     fn default() -> Self {
         ScriptsConfig {
             after_init: Some(Vec::new())
+        }
+    }
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        StorageConfig {
+            variables: Some(HashMap::new())
         }
     }
 }
