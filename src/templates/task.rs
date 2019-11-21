@@ -17,8 +17,8 @@ use crate::constants::{
 use crate::filesystem::{create_directory, get_directory_objects};
 use crate::templates::config::Config;
 use crate::templates::utils::{
-    TEMPLATE_VARIABLE_REGEX, generate_file_from_template, generate_subcontexts,
-    get_template_variables, merge_contexts
+    generate_file_from_template, generate_subcontexts, get_template_variables,
+    merge_contexts
 };
 
 enum InstallStage {
@@ -216,12 +216,20 @@ impl Task {
                         match path_variables.is_empty() {
                             // Path is static. Shared context for everything
                             true => {
-                                templates.insert(PathBuf::from(path), context.clone());
+                                templates.insert(self.project_directory_path.join(path), context.clone());
                             },
                             // Path is dynamic. Therefore each path has its own unique subcontext
                             false => {
-                                self.generate_unique_subcontexts(context, &path_variables)
+                                generate_subcontexts(context, &path_variables)
                                     .iter()
+                                    // Generate all unique paths
+                                    .map(|subcontext| {
+                                        let template_path = self.handlebars
+                                            .render_template(path, &subcontext)
+                                            .unwrap();
+                                        let generated_path = PathBuf::from(template_path);
+                                        (self.project_directory_path.join(generated_path), subcontext)
+                                    })
                                     // Then prepare a unique subcontext for each path
                                     .for_each(|(template_path, partial_context)| {
                                         let mut used_context = partial_context.clone();
@@ -233,35 +241,17 @@ impl Task {
                     });
 
                 // And then generate all files with its own subcontext
-//                templates
-//                    .iter()
-//                    .for_each(|(target_file_path, subcontext)| {
-//                        generate_file_from_template(
-//                            &self.handlebars,
-//                            subcontext,
-//                            &full_template_path,
-//                            target_file_path
-//                        ).unwrap();
-//                    });
+                templates
+                    .iter()
+                    .for_each(|(target_file_path, subcontext)| {
+                        generate_file_from_template(
+                            &self.handlebars,
+                            subcontext,
+                            &full_template_path,
+                            target_file_path
+                        ).unwrap();
+                    });
             });
         Ok(())
-    }
-
-    fn generate_unique_subcontexts(
-        &self,
-        context: &Box<SerdeValue>,
-        path_variables: &BTreeSet<String>,
-    ) -> Vec<SerdeValue> {
-//        generate_subcontexts(context, path_variables)
-//            .iter()
-//            // Generate all unique paths
-//            .map(|subcontext| {
-//                let template_path = self.handlebars
-//                    .render_template(path, &subcontext)
-//                    .unwrap();
-//                let generated_path = PathBuf::from(template_path);
-//                (self.project_directory_path.join(generated_path), subcontext)
-//            })
-        vec![]
     }
 }
