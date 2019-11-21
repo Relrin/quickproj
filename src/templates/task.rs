@@ -122,25 +122,33 @@ impl Task {
         };
     }
 
-    /// Creates directories based on templates specified in the config[files][directories] space.
+    /// Creates directories based on data specified in the config[files][directories] space.
     fn create_template_directories(&self, context: &Box<SerdeValue>) -> Result<(), Error> {
         self.refresh_progress_bar(InstallStage::CreatingTemplateDirectories);
 
         self.config.clone().json_config.files.directories.unwrap_or_default()
             .iter()
-            .filter(|directory| TEMPLATE_VARIABLE_REGEX.is_match(directory))
             .for_each(|directory| {
                 let path_variables = get_template_variables(&directory);
-                generate_subcontexts(context, &path_variables)
-                    .iter()
-                    .for_each(|subcontext| {
-                        let template_path = self.handlebars
-                            .render_template(directory, &subcontext)
-                            .unwrap();
-                        let generated_path = PathBuf::from(template_path);
-                        let subdirectory_path = self.project_directory_path.join(generated_path);
+                match path_variables.is_empty() {
+                    // Path is static
+                    true => {
+                        let subdirectory_path = self.project_directory_path.join(directory);
                         create_directory(&subdirectory_path).unwrap();
-                    })
+                    },
+                    // Path is dynamic. Therefore generate subcontexts and the create folders
+                    false =>
+                        generate_subcontexts(context, &path_variables)
+                            .iter()
+                            .for_each(|subcontext| {
+                                let template_path = self.handlebars
+                                    .render_template(directory, &subcontext)
+                                    .unwrap();
+                                let generated_path = PathBuf::from(template_path);
+                                let subdirectory_path = self.project_directory_path.join(generated_path);
+                                create_directory(&subdirectory_path).unwrap();
+                            })
+                }
             });
         Ok(())
     }
