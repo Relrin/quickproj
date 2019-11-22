@@ -106,6 +106,11 @@ impl Config {
             .collect()
     }
 
+    pub fn refresh_storage_keys(&mut self) {
+        self.json_config.replace_storage_references();
+        self.json_config.merge_storage_with_variables();
+    }
+
     pub fn get_template_context(&self) -> Box<SerdeValue> {
         let mut context = SerdeMap::new();
         self.add_config_definition_to_context(&mut context);
@@ -178,6 +183,39 @@ impl JsonConfig {
         }
     }
 
+    pub fn replace_storage_references(&mut self) {
+        let mut storage_config = self.storage.clone().unwrap_or_default();
+        let mut storage_variables = storage_config.variables.clone().unwrap_or_default();
+
+        for (key, serde_value) in storage_variables.clone() {
+            let updated_value = match serde_value {
+                SerdeValue::String(value) => {
+                    let raw_value = format!("{}", value);
+                    self.replace_variable_reference(&raw_value)
+                },
+                SerdeValue::Array(array) => {
+                    array
+                        .iter()
+                        .map(|value| {
+                            let raw_value = format!("{}", value);
+                            self.replace_variable_reference(&raw_value)
+                        })
+                        .collect()
+                },
+                _ => unreachable!(),
+            };
+
+            storage_variables.insert(key.to_owned(), updated_value);
+        }
+
+        storage_config.variables = Some(storage_variables);
+        self.storage = Some(storage_config);
+    }
+
+    pub fn merge_storage_with_variables(&mut self) {
+
+    }
+
     pub fn validate(&self, config_path: &String) -> Result<(), Error> {
         for record in self.files.sources.iter() {
             if !record.contains_key("from") || !record.contains_key("to") {
@@ -198,6 +236,22 @@ impl JsonConfig {
         self.validate_variable_references(config_path, &storage_variables)?;
 
         Ok(())
+    }
+
+    fn replace_variable_reference(&self, value: &String) -> SerdeValue {
+        let variables = self.variables.clone().unwrap_or_default();
+
+        match REFERENCE_VARIABLE_REGEX.is_match(value) {
+            // It is the reference to something from the `variables`
+            true => {
+                let captures = REFERENCE_VARIABLE_REGEX.captures(value).unwrap();
+                let raw_capture = captures.name("name").unwrap();
+                let variable_name = raw_capture.as_str();
+                variables.get(variable_name).unwrap_or(&json!("")).to_owned()
+            },
+            // Regular value, specified implicitly
+            false => json!(value)
+        }
     }
 
     fn validate_hashmap_values(

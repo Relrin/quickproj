@@ -6,7 +6,6 @@ use crate::filesystem::{
     basename, create_directory, delete_repository_by_name,
     delete_template_by_path, get_templates_directory,
     get_repositories_map, get_templates_map, sanitize_path
-
 };
 use crate::installers::{GitInstaller, LocalInstaller, Installer};
 use crate::managers::{Manager, RepositoryManager, TemplateManager};
@@ -132,6 +131,12 @@ impl Client {
                     config.json_config.variables = Some(variables);
                     configs.insert(template_name.to_owned(), config);
                 }
+            });
+
+        configs
+            .iter_mut()
+            .for_each(|(_template_name, config)| {
+                config.refresh_storage_keys();
             });
 
         Ok(())
