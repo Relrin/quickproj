@@ -76,12 +76,17 @@ As the example we will take and modify one of the existing templates for the `qu
         "dev", 
         "production", 
         "staging"
-    ]
+    ],
   },
   "scripts": {
     "after_init": [
        "ls -al"
     ]
+  },
+  "storage": {
+    "variables": {
+      "service_name": "service"
+    }
   }
 }
 ```
@@ -120,8 +125,8 @@ The main section of the configuration file of the template. It stores the inform
     - The key represented as the file name of the template, available to use in the `generated` section
     - The value represented as the relative path in the source folder to the template that must be used
 
-### Variables
-Stores all variables that can be used during the project generation and can be overridden by the user if was specified the `--override-all` or the `--override` options in CLI.   
+### Variables section
+Optional section which stores all variables that can be used during the project generation and can be overridden by the user if was specified the `--override-all` or the `--override` options in CLI.
 
 Each variable, specified in this section has to met the following requirements:
 - The key can be represented only as the `string` type.
@@ -136,13 +141,25 @@ During the overriding stage (when the CLI will ask you to specify the value to o
 
 Hitting the `Enter` key or setting the empty string for the certain key will lead to using the default value, specified in the configuration.
 
-### Scripts
+### Scripts section
 Optional section that describes a list of commands/scripts that could be executed during the template installation process.
 
 - `after_init`
 
    Required to be defined as the array of strings, where each string represented as the certain command needs to be executed after the template installation process.
    For example from the example on top, the application will execute the `ls -al` command to output the list of files in the current directory.  
+
+### Storage section
+Optional section which is using as the storage for the template data, without giving an access to endusers to override them.
+
+- `variables`
+
+   Optional. Defines template variables as the key-value pairs with the a reference support for accessing the main variables section.
+
+   Each key-value pair has to met the following requirements:
+    - The key can be represented only as the `string` type.
+    - The value can be represented as the `string` or as the `array of strings` types.
+    - Any reference to something in the `variables` section must be specified as the string with the `Vars.` prefix. For example: `{{ Vars.my_variable }}`.
 
 ## License
 
