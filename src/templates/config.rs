@@ -213,7 +213,11 @@ impl JsonConfig {
     }
 
     pub fn merge_storage_with_variables(&mut self) {
-
+        let mut variables = self.variables.clone().unwrap_or_default();
+        let storage_config = self.storage.clone().unwrap_or_default();
+        let storage_variables = storage_config.variables.clone().unwrap_or_default();
+        variables.extend(storage_variables);
+        self.variables = Some(variables);
     }
 
     pub fn validate(&self, config_path: &String) -> Result<(), Error> {
