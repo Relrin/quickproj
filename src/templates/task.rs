@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
-use handlebars::Handlebars;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde_json::Value as SerdeValue;
 
@@ -16,9 +15,9 @@ use crate::constants::{
 };
 use crate::filesystem::{create_directory, get_directory_objects};
 use crate::templates::config::Config;
+use crate::templates::TemplateRenreder;
 use crate::templates::utils::{
-    generate_file_from_template, generate_subcontexts, get_template_variables,
-    merge_contexts
+    generate_subcontexts, get_template_variables, merge_contexts
 };
 
 enum InstallStage {
@@ -31,7 +30,7 @@ enum InstallStage {
 }
 
 pub struct Task {
-    handlebars: Box<Handlebars>,
+    template_renderer: Box<TemplateRenreder>,
     project_directory_path: PathBuf,
     template_directory_path: PathBuf,
     config: Box<Config>,
@@ -53,7 +52,7 @@ impl Task {
         progress_bar.set_length(5);
 
         Task {
-            handlebars: Box::new(Handlebars::new()),
+            template_renderer: Box::new(TemplateRenreder::new()),
             project_directory_path: project_directory_path.to_owned(),
             template_directory_path: template_directory_path.to_owned(),
             config: config.to_owned(),
@@ -141,9 +140,8 @@ impl Task {
                         generate_subcontexts(context, &path_variables)
                             .iter()
                             .for_each(|subcontext| {
-                                let template_path = self.handlebars
-                                    .render_template(directory, &subcontext)
-                                    .unwrap();
+                                let template_path = self.template_renderer
+                                    .render_template(directory, &subcontext);
                                 let generated_path = PathBuf::from(template_path);
                                 let subdirectory_path = self.project_directory_path.join(generated_path);
                                 create_directory(&subdirectory_path).unwrap();
@@ -224,9 +222,8 @@ impl Task {
                                     .iter()
                                     // Generate all unique paths
                                     .map(|subcontext| {
-                                        let template_path = self.handlebars
-                                            .render_template(path, &subcontext)
-                                            .unwrap();
+                                        let template_path = self.template_renderer
+                                            .render_template(path, &subcontext);
                                         let generated_path = PathBuf::from(template_path);
                                         (self.project_directory_path.join(generated_path), subcontext)
                                     })
@@ -244,8 +241,8 @@ impl Task {
                 templates
                     .iter()
                     .for_each(|(target_file_path, subcontext)| {
-                        generate_file_from_template(
-                            &self.handlebars,
+                        println!("");
+                        self.template_renderer.generate_file_from_template(
                             subcontext,
                             &full_template_path,
                             target_file_path
