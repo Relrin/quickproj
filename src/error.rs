@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use git2::Error as Git2Error;
 use fs_extra::error::Error as FsExtraCallError;
-use handlebars::TemplateRenderError;
 use quick_error::quick_error;
 use serde_json::error::Error as SerdeJsonError;
 
@@ -40,13 +39,6 @@ quick_error! {
             from()
             description("serde_json error")
             display("SerdeJson lib error: {}", err)
-        }
-        TemplateRender(err: TemplateRenderError, filename: String) {
-            display("Template rendering error for {} file: {}", filename, err)
-            context(filename: &'a String, err: TemplateRenderError)
-                -> (err, filename.to_string())
-            context(source: &PathBuf, err: TemplateRenderError)
-                -> (err, source.to_str().unwrap().to_string())
         }
         Other(message: String) {
             description(message)
