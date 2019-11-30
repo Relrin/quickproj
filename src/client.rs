@@ -155,7 +155,7 @@ impl Client {
 
         let is_template_exist = self.templates.contains_key(&used_template_name);
         let is_repository_exist = self.repositories.contains_key(&used_template_name);
-        if is_repository_exist || is_repository_exist {
+        if is_template_exist || is_repository_exist {
             ask_for_replacing_template()?;
 
             match is_template_exist {
